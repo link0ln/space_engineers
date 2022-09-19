@@ -1,46 +1,24 @@
-        IMyShipDrill drill1;
-        IMyShipDrill drill2;
-        IMyShipDrill drill3;
-        IMyShipDrill drill4;
-        IMyShipDrill drill5;
-        IMyShipDrill drill6;
-        IMyGyro gyro1;
+        IMyBeacon beacon;
+		IMyGyro gyro;
         IMyTextPanel textPanel;
         IMyProgrammableBlock sam;
         IMyProgrammableBlock pbmy;
-        string drillname1 = "drill1";
-        string drillname2 = "drill2";
-        string drillname3 = "drill3";
-        string drillname4 = "drill4";
-        string drillname5 = "drill5";
-        string drillname6 = "drill6";
-        string gyroname1 = "gyro1";
+		//List<IMyShipDrill> drills = new List<IMyShipDrill>();
+		List<IMyTerminalBlock> drills = new List<IMyTerminalBlock>();
+		string drills_name = "remotedrill";
+		string beacon_name = "maindrill";
+        string gyroname = "drillgyro";
         string displayname = "drilldisplay";
         string pbsam = "pb [SAM]";
         string pbself = "pb my";
         int counter = 0;
         float areasize = 75;
         int _timer1 = 0;
-        int drill = 0;
+        int action_drill = 0;
         int xzdim = 75;
         int drillworkdelay = 10;
-
-        int d2x_offset;
-        int d2y_offset;
-        int d2z_offset;
-        int d3x_offset;
-        int d3y_offset;
-        int d3z_offset;
-        int d4x_offset;
-        int d4y_offset;
-        int d4z_offset;
-        int d5x_offset;
-        int d5y_offset;
-        int d5z_offset;
-        int d6x_offset;
-        int d6y_offset;
-        int d6z_offset;
-
+		int[,] areas = new int[27,3];
+		int[] drillprevpos = new int[6];
 
 
         public string direction(string axis)
@@ -51,8 +29,10 @@
             return "";
         }
 
-        public void setpos(float v, string axis, IMyShipDrill drill)
+        public void setpos(float v, string axis, int drillnum)
         {
+			IMyTerminalBlock drill = drills[drillnum];
+			v = v - get_drill_offset(axis, drillnum)*2;
             try
             {
                 float k = drill.GetValueFloat("Drill.AreaOffset" + direction(axis));
@@ -76,140 +56,96 @@
             catch { }
         }
 
-        public void setoffset(float v, string axis)
-        {
-            //wdisp(v.ToString() + " " + axis + " ", true);
-            setpos(v, axis, drill1);   // -76 -9 15   9.5 81.5 0.5
-
-            if (axis == "x")
-            {
-                v = v - 3;
-            }
-            if (axis == "y")
-            {
-                v = v + 10;
-            }
-			
-            setpos(v, axis, drill2);
-			setpos(v, axis, drill3);
-			setpos(v, axis, drill4);
-			setpos(v, axis, drill5);
-			setpos(v, axis, drill6);
-			
-            //if (axis == "y")
-            //{
-            //    axis = "z";
-            //    v = v - v - v;
-            //}
-            //else if (axis == "z")
-            //{
-            //    axis = "x";
-            //    //v = v - v - v;
-            //}
-            //else if (axis == "x")
-            //{
-            //    axis = "y";
-            //    v = v - v - v;
-            //}
-            ////wdisp(v.ToString() + " " + axis + "\n", true);
-			//
-            //if (axis == "x")
-            //{
-            //    v = v - 3;
-            //}
-            //if (axis == "y")
-            //{
-            //    v = v + 3;
-            //}
-            //setpos(v, axis, drill3);
-			//
-            //if (axis == "y")
-            //{
-            //    v = v - 2;
-            //}
-            //setpos(v, axis, drill4);
-        }
-
-        public bool drillarea()
-        {
-            drill1.ApplyAction("OnOff_On");
-            drill2.ApplyAction("OnOff_On");
-            string result = "Nothing to drill...";
-            try
-            {
-                object tgt = drill1.GetValue<object>("Drill.CurrentDrillTarget");
-                result = tgt.ToString();
-                result = "Drilling...";
-                wdisp(result);
-                return true;
-            }
-            catch
-            {
-            }
-            wdisp(result);
-            return false;
-        }
+		public int get_drill_offset(string axis, int drill_num)
+		{
+			if (axis == "y"){
+			  return (beacon.Position.X - drills[drill_num].Position.X);
+			}
+			if (axis == "x"){
+			  return (beacon.Position.Y - drills[drill_num].Position.Y);
+			}
+			if (axis == "z"){
+			  return (beacon.Position.Z - drills[drill_num].Position.Z);
+			}
+			return 0;
+		}
 
         public void wdisp(string msg, bool noclear = false)
         {
             textPanel = GridTerminalSystem.GetBlockWithName(displayname) as IMyTextPanel;
             textPanel.ContentType = ContentType.TEXT_AND_IMAGE;
-            textPanel.FontSize = 3;
+            textPanel.FontSize = 2;
             textPanel.Alignment = VRage.Game.GUI.TextPanel.TextAlignment.CENTER;
             textPanel.WriteText(msg, noclear);
         }
 
-        public Program()
-        {
-            drill1 = GridTerminalSystem.GetBlockWithName(drillname1) as IMyShipDrill;
-            drill2 = GridTerminalSystem.GetBlockWithName(drillname2) as IMyShipDrill;
-            drill3 = GridTerminalSystem.GetBlockWithName(drillname3) as IMyShipDrill;
-            drill4 = GridTerminalSystem.GetBlockWithName(drillname4) as IMyShipDrill;
-            drill5 = GridTerminalSystem.GetBlockWithName(drillname5) as IMyShipDrill;
-            drill6 = GridTerminalSystem.GetBlockWithName(drillname6) as IMyShipDrill;
-            gyro1 = GridTerminalSystem.GetBlockWithName(gyroname1) as IMyGyro;
+        public Program() {
+            gyro = GridTerminalSystem.GetBlockWithName(gyroname) as IMyGyro;
             sam = GridTerminalSystem.GetBlockWithName(pbsam) as IMyProgrammableBlock;
             pbmy = GridTerminalSystem.GetBlockWithName(pbself) as IMyProgrammableBlock;
+			beacon = GridTerminalSystem.GetBlockWithName(beacon_name) as IMyBeacon;
+			
+			GridTerminalSystem.SearchBlocksOfName(drills_name, drills);
+			
             Runtime.UpdateFrequency = UpdateFrequency.Update100;
             //throw new Exception("Block Actions: " + "");
-            drill = Int32.Parse(drill1.CustomData);
+			
+            action_drill = Int32.Parse(beacon.CustomData);
             wdisp("");
-            drillendposition();
-            set_drills_offset();
-        }
-
-        public void set_drills_offset()
-        {
-            var drillpos1 = pbmy.CubeGrid.GridIntegerToWorld(drill1.Position);
-            var drillpos2 = pbmy.CubeGrid.GridIntegerToWorld(drill2.Position);
-            var drillpos3 = pbmy.CubeGrid.GridIntegerToWorld(drill3.Position);
-            var drillpos4 = pbmy.CubeGrid.GridIntegerToWorld(drill4.Position);
-            var drillpos5 = pbmy.CubeGrid.GridIntegerToWorld(drill5.Position);
-            var drillpos6 = pbmy.CubeGrid.GridIntegerToWorld(drill6.Position);
-
-            double d1x = Math.Floor(drillpos1.GetDim(0));
-            double d1y = Math.Floor(drillpos1.GetDim(1));
-            double d1z = Math.Floor(drillpos1.GetDim(2));
-            d2x_offset = (int)(Math.Floor(drillpos2.GetDim(0)) - Math.Floor(drillpos1.GetDim(0)));
-            d2y_offset = (int)(Math.Floor(drillpos2.GetDim(1)) - Math.Floor(drillpos1.GetDim(1)));
-            d2z_offset = (int)(Math.Floor(drillpos2.GetDim(2)) - Math.Floor(drillpos1.GetDim(2)));
-            d3x_offset = (int)(Math.Floor(drillpos3.GetDim(0)) - Math.Floor(drillpos1.GetDim(0)));
-            d3y_offset = (int)(Math.Floor(drillpos3.GetDim(1)) - Math.Floor(drillpos1.GetDim(1)));
-            d3z_offset = (int)(Math.Floor(drillpos3.GetDim(2)) - Math.Floor(drillpos1.GetDim(2)));
-            d4x_offset = (int)(Math.Floor(drillpos4.GetDim(0)) - Math.Floor(drillpos1.GetDim(0)));
-            d4y_offset = (int)(Math.Floor(drillpos4.GetDim(1)) - Math.Floor(drillpos1.GetDim(1)));
-            d4z_offset = (int)(Math.Floor(drillpos4.GetDim(2)) - Math.Floor(drillpos1.GetDim(2)));
-            d5x_offset = (int)(Math.Floor(drillpos5.GetDim(0)) - Math.Floor(drillpos1.GetDim(0)));
-            d5y_offset = (int)(Math.Floor(drillpos5.GetDim(1)) - Math.Floor(drillpos1.GetDim(1)));
-            d5z_offset = (int)(Math.Floor(drillpos5.GetDim(2)) - Math.Floor(drillpos1.GetDim(2)));
-            d6x_offset = (int)(Math.Floor(drillpos6.GetDim(0)) - Math.Floor(drillpos1.GetDim(0)));
-            d6y_offset = (int)(Math.Floor(drillpos6.GetDim(1)) - Math.Floor(drillpos1.GetDim(1)));
-            d6z_offset = (int)(Math.Floor(drillpos6.GetDim(2)) - Math.Floor(drillpos1.GetDim(2)));
-            
-            Echo("d2 " + d2x_offset.ToString() + " " + d2y_offset.ToString() + " " + d2z_offset.ToString());
-            //Echo("d3 " + (d3x - d1x).ToString() + " " + (d3y - d1y).ToString() + " " + (d3z - d1z).ToString());
-            //Echo("d4 " + (d4x - d1x).ToString() + " " + (d4y - d1y).ToString() + " " + (d4z - d1z).ToString());
-        }
+			areas = get_areas();
+			//Echo("--");
+			//Random rnd = new Random();
+			//Echo(rnd.Next(0,100).ToString());
+			//Echo(areas[rnd.Next(0, 5),1].ToString());
+			//Echo("--");
+			
+		}
+		
+		public int get_areas_index_next_point(int[,]areas){
+			int drills_min_index = 0;
+			int drills_min = 999;
+			for (int i=0; i < areas.GetLength(0); i++){
+				if (areas[i,3] <= drills_min){
+					drills_min = areas[i,3];
+					drills_min_index = i;
+				}
+			}
+			return drills_min_index;
+		}
+		
+		public int[,] get_areas(){
+			int areas_count = 0;
+		    for (int x = xzdim*-1; x <= xzdim;){
+				for (int z = xzdim*-1; z <= xzdim;){
+					for (int y=34; y <= 250;){
+						areas_count++;
+                        y = y + (int)areasize;
+					}
+				    z = z + (int)areasize;
+				}
+				x = x + (int)areasize;
+			}
+			
+			int[,] areas_local = new int[areas_count,4];
+			areas_count = 0;
+			
+			for (int x = xzdim*-1; x <= xzdim;){
+				for (int z = xzdim*-1; z <= xzdim;){
+					for (int y=34; y <= 250;){
+						areas_local[areas_count,0] = x;
+						areas_local[areas_count,1] = y;
+						areas_local[areas_count,2] = z;
+						areas_local[areas_count,3] = 0;
+						Echo(areas_local[areas_count,0] + " " + areas_local[areas_count,1] + " " + areas_local[areas_count,2] + " " + areas_local[areas_count,3]);
+						areas_count++;
+                        y = y + (int)areasize;
+					}
+				    z = z + (int)areasize;
+				}
+				x = x + (int)areasize;
+			}
+			return areas_local;
+		}
 
         public void Save()
         {
@@ -218,7 +154,7 @@
 
         public float getoffset(string axis)
         {
-            float offset = drill1.GetValueFloat("Drill.AreaOffset" + direction(axis));
+            float offset = drills[0].GetValueFloat("Drill.AreaOffset" + direction(axis));
             return offset;
         }
 
@@ -242,7 +178,7 @@
             {
                 string pbtext = sam.DetailedInfo;
                 wdisp("\nDebugsam " + pbtext, true);
-                return System.Text.RegularExpressions.Regex.IsMatch(pbtext, ".+?disabled");
+                return System.Text.RegularExpressions.Regex.IsMatch(pbtext, ".+?approaching.+");
             }
             catch
             {
@@ -252,6 +188,7 @@
 
         public void travelnext()
         {
+			Echo("Travel to next point...");
             string gps_string = pbmy.CustomData;
             string[] gps_list = gps_string.Split('\n');
             string gpsarg = gps_list[0];
@@ -273,21 +210,45 @@
             pbmy.CustomData = pbmy.CustomData + gpscord + "\n";
         }
 
-
-
-        public void drillstartposition()
+        //public void drillstartposition()
+        //{
+        //    setoffset((xzdim * -1) - 1, "x");
+        //    setoffset(34, "y");
+        //    setoffset(xzdim * -1, "z");
+        //}
+		//
+        //public void drillendposition()
+        //{
+        //    setoffset(xzdim, "x");
+        //    setoffset(250, "y");
+        //    setoffset(xzdim, "z");
+        //}
+		
+		public bool drillarea(int drill_num)
         {
-            setoffset((xzdim * -1) - 1, "x");
-            setoffset(34, "y");
-            setoffset(xzdim * -1, "z");
+            string result = "Nothing to drill...";
+            try
+            {
+                object tgt = drills[drill_num].GetValue<object>("Drill.CurrentDrillTarget");
+                result = tgt.ToString();
+                result = "Drilling...";
+                wdisp(result);
+                return true;
+            }
+            catch
+            {
+            }
+            wdisp(result);
+            return false;
         }
-        public void drillendposition()
-        {
-            setoffset(xzdim, "x");
-            setoffset(250, "y");
-            setoffset(xzdim, "z");
-        }
-
+		
+		public void flush_drillprevpos(){
+			for ( int i = 0; i< drills.Count; i++){
+			  drillprevpos[i] = 999;
+			}
+			
+		}
+		
         public void Main(string argument, UpdateType updateSource)
         {
             switch (argument)
@@ -296,29 +257,32 @@
                     addgps();
                     break;
                 case "drill":
-                    gyro1.SetValue("Override", true);
-                    drill1.CustomData = "1";
-                    drill = 1;
+                    gyro.SetValue("Override", true);
+                    beacon.CustomData = "1";
+                    action_drill = 1;
                     break;
                 case "nodrill":
-                    gyro1.SetValue("Override", false);
-                    drill1.CustomData = "0";
-                    drill = 0;
+                    gyro.SetValue("Override", false);
+                    beacon.CustomData = "0";
+                    action_drill = 0;
                     break;
-                case "drillstartposition":
-                    drillstartposition();
-                    break;
-                case "setdrillsoffset":
-                    set_drills_offset();
-                    break;
-                case "drillendposition":
-                    drillendposition();
-                    break;
+                //case "drillstartposition":
+                //    drillstartposition();
+                //    break;
+                //case "drillendposition":
+                //    drillendposition();
+                //    break;
+				case "test":
+				    int nextpos_index = get_areas_index_next_point(areas);
+			        areas[nextpos_index,3]++;
+					Echo(nextpos_index + " " + areas[nextpos_index, 0] + " " + areas[nextpos_index, 1] + " " + areas[nextpos_index, 2] + " " + areas[nextpos_index, 3]);
+				    break;
                 default:
                     break;
             }
+            
 
-            if (drill == 0)
+            if (action_drill == 0)
             {
                 Echo("Drilling off");
                 return;
@@ -332,43 +296,45 @@
             wdisp("\n" + counter.ToString());
             if (samnottravel() == true)
             {
-                wdisp("\nIdle...", true);
-                gyro1.SetValue("Override", true);
-            }
-            else
-            {
-                wdisp("\nTraveling...", true);
+				wdisp("\nTraveling...", true);
                 return;
             }
-
-            if (getoffset("x") >= xzdim & getoffset("y") == 250 & getoffset("z") >= xzdim)
-            {
-                wdisp("\nTravel next...", true);
-                travelnext();
-                drillstartposition();
-            }
-
-            if (drillarea() == true)
-            {
-            }
             else
             {
-                if (timer1(drillworkdelay) == true)
-                {
-                    setoffset(getoffset("x") + areasize, "x");
-                }
-                else
-                if (getoffset("x") >= xzdim & getoffset("y") < 250)
-                {
-                    setoffset(-1 * xzdim - 1, "x");
-                    setoffset(getoffset("y") + areasize, "y");
-                }
-                else
-                if (getoffset("x") >= xzdim & getoffset("y") == 250 & getoffset("z") < xzdim)
-                {
-                    setoffset(-1 * xzdim - 1, "x");
-                    setoffset(34, "y");
-                    setoffset(getoffset("z") + areasize, "z");
-                }
+				wdisp("\nIdle...", true);
+                gyro.SetValue("Override", true);
+                
             }
+			
+			if (timer1(drillworkdelay) == true){
+			    for (int drillnum = 0; drillnum < drills.Count; drillnum++) {
+			    	Echo("Drill " + drillnum);
+			    	if (drillarea(drillnum) == true){
+			    	}else{
+				    
+						if (drillprevpos[drillnum] != 999){
+							areas[drillprevpos[drillnum], 3] = 999;
+						}
+						Echo("Drill " + drillnum + " next position...");
+				        int nextpos_index = get_areas_index_next_point(areas);
+						Echo("Next position for drill " + drillnum + " is " + nextpos_index);
+						if (areas[nextpos_index, 3] < 999){
+						  drillprevpos[drillnum] = nextpos_index;
+			              areas[nextpos_index,3]++;
+				          int x = areas[nextpos_index,0];
+				          int y = areas[nextpos_index,1];
+				          int z = areas[nextpos_index,2];
+				          setpos(x,"x",drillnum); setpos(y,"y",drillnum); setpos(z,"z",drillnum);
+						} else {
+							areas = get_areas();
+							travelnext();
+						}
+					}
+				}
+			}
+			
+			for (int i=0; i < areas.GetLength(0); i++){
+				Echo(areas[i,0] + " " + areas[i,1] + " " + areas[i,2] + " " + areas[i,3]);
+			}
+			
         }
