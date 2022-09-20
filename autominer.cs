@@ -16,9 +16,10 @@
         int _timer1 = 0;
         int action_drill = 0;
         int xzdim = 75;
-        int drillworkdelay = 10;
+        int drillworkdelay = 15;
 		int[,] areas = new int[27,3];
 		int[] drillprevpos = new int[6];
+		int[] drillstatus  = new int[6];
 
 
         public string direction(string axis)
@@ -178,7 +179,7 @@
             {
                 string pbtext = sam.DetailedInfo;
                 wdisp("\nDebugsam " + pbtext, true);
-                return System.Text.RegularExpressions.Regex.IsMatch(pbtext, ".+?approaching.+");
+                return System.Text.RegularExpressions.Regex.IsMatch(pbtext, ".+?ing.+");
             }
             catch
             {
@@ -249,6 +250,21 @@
 			
 		}
 		
+		public void flush_drill_status(){
+			for ( int i = 0; i< drills.Count; i++){
+			  drillstatus[i] = 0;
+			}
+		}
+		
+		public int summ_drill_status(){
+			int result = 0;
+			for ( int i = 0; i< drills.Count; i++){
+			  result = result + drillstatus[i];
+			}
+			return result;
+		}
+		
+		
         public void Main(string argument, UpdateType updateSource)
         {
             switch (argument)
@@ -306,6 +322,12 @@
                 
             }
 			
+			if (summ_drill_status() == drills.Count){
+				flush_drill_status();
+				areas = get_areas();
+				travelnext();
+			}
+			
 			if (timer1(drillworkdelay) == true){
 			    for (int drillnum = 0; drillnum < drills.Count; drillnum++) {
 			    	Echo("Drill " + drillnum);
@@ -326,8 +348,7 @@
 				          int z = areas[nextpos_index,2];
 				          setpos(x,"x",drillnum); setpos(y,"y",drillnum); setpos(z,"z",drillnum);
 						} else {
-							areas = get_areas();
-							travelnext();
+							drillstatus[drillnum] = 1;
 						}
 					}
 				}
